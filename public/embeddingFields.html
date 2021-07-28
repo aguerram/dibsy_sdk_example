@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dibsy | Embedding Fields</title>
+    <!-- <script src="https://cdn.dibsy.one/js/dibsy-1.0.0.js"></script> -->
+    <script src="http://localhost:8080/dibsy-1.0.0.js"></script>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        min-height: 100vh;
+        justify-content: center;
+        align-items: center;
+      }
+      form {
+        width: 300px;
+        padding: 10px;
+        border: 1px solid gray;
+      }
+      .col-12 {
+        width: 100%;
+      }
+      .col-6 {
+        width: 50%;
+      }
+      .d-flex {
+        display: flex;
+      }
+      .pay-btn {
+        appearance: none;
+        width: 100%;
+        height: 42px;
+        background-color: #3c6;
+        border: 1px solid #3c6;
+        outline: none;
+        color: white;
+        border-radius: 6px;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.25s;
+      }
+      .pay-btn:hover {
+        background-color: #25954a;
+        border-color: #25954a;
+      }
+      .pay-btn:disabled {
+        background-color: #b5b3b3 !important;
+        border-color: #b5b3b3 !important;
+        cursor: not-allowed;
+      }
+      form label {
+        font-size: 14px;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <form>
+      <div class="col-12">
+        <div class="ds-input-field" id="card-number"></div>
+        <div class="invalid-feedback" id="card-number-error"></div>
+      </div>
+
+      <div class="d-flex">
+        <div class="col-6">
+          <div class="ds-input-field" id="expiry-date"></div>
+          <div class="invalid-feedback" id="expiry-date-error"></div>
+        </div>
+
+        <div class="col-6">
+          <div class="ds-input-field" id="card-code"></div>
+          <div class="invalid-feedback" id="card-code-error"></div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="ds-input-field" id="card-holder"></div>
+        <div class="invalid-feedback" id="card-holder-error"></div>
+      </div>
+      <div class="col-12">
+        <button disabled="true" type="submit" class="pay-btn">Pay</button>
+      </div>
+    </form>
+    <script>
+      const pk = "pk_live_BMBxixpDP1Mx3YkwtjHmIbDhBc6rzNLXAWTz";
+
+      async function init() {
+        //we inisiate our SDK
+        const dibsy = await Dibsy(pk, { type: "embed" });
+
+        //we create a card number component, with different options if we want to override the default ones.
+        const cardNumber = dibsy.createComponent("cardNumber", {
+          css: {},
+          placeHolder: "Card",
+          showCardIcon: false,
+        });
+
+        //we mount created card number comonent in a container using an ID
+        cardNumber.mount("#card-number");
+        //we mount errors related to card number in a different container
+        /*
+        example:
+        when the card number is invalid, the error : 'Your card number is not valid.' will be mounted in given
+        container (#card-number-error)
+        */
+        cardNumber.errorMessage("#card-number-error");
+
+        //we repeat the same process for cardCode, cardExpiry and (optionally) card holder
+        const cardHolder = dibsy.createComponent("cardHolder");
+        cardHolder.mount("#card-holder");
+        cardHolder.errorMessage("#card-holder-error");
+
+        const cardCode = dibsy.createComponent("cardCode");
+        cardCode.mount("#card-code");
+        cardCode.errorMessage("#card-code-error");
+
+        const expiryDate = dibsy.createComponent("expiryDate");
+        expiryDate.mount("#expiry-date");
+        expiryDate.errorMessage("#expiry-date-error");
+
+        //manage pay button state, by listening to dibsy if we can submit the form
+        const payBtn = document.querySelector(".pay-btn");
+
+        dibsy.canSubmit((canSubmit) => {
+          //this function is called whenever can submit state changes.
+          //us this function to disabled the pay button for example, as if canSubmit is false,
+          //the SDK won't submit the payment for you, so always make sure to not activate your pay button unless 
+          //canSubmit is true
+          if (!canSubmit) {
+            payBtn.setAttribute("disabled", "true");
+          } else {
+            payBtn.removeAttribute("disabled");
+          }
+        });
+
+        const form = document.querySelector("form");
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          //we create a payment token by calling our backend, in which we create our payment using our secret key.
+          const paymentToken = await fetch("/create-payment", {
+            method: "POST",
+          }).then((res) => res.text());
+
+          //some app UX (disabling button while submitting)
+          payBtn.setAttribute("disabled", "true");
+
+
+          dibsy.submit({
+            paymentToken: paymentToken,
+            state: (state) => {
+              //we use this function to observe start of our submit, make sure to put any loading in this function
+              //since this is always called, even if there is a problem in the SDK that blocked the submit of the request
+              //meanwhile 'callback' function called only when we hit the 3DS page
+              /*
+              THIS FUNCTION HAS 5 states so far:
+              "pay" : when we start the payment process.
+              "failed_pay" : when the payment fails before 3DS step (example card doesn't support 3DS)
+              "3DS" : when the payer opens the ACS page
+              "failed_3DS": payment using 3DS failed, for various reasosns, you will faind failure reason in callback error 
+              "complete": this is always called at the end of payment process.
+              */
+              if (state === "complete") {
+                payBtn.removeAttribute("disabled");
+              }
+            },
+            onClose:()=>{
+              //this function is called when the user closes 'continue to issuer modal, or closed the ACS page'
+              console.log('Continue to issuer dialoge or ACS page is closed.');
+            },
+            callback: (payment, error) => {
+              //this function is called at the end of the payment (only when the payer reaches '3DS' state, check 'state' function)
+              console.log(payment);
+              if (error) {
+                alert(JSON.stringify(error));
+              } else {
+                alert(JSON.stringify(payment));
+              }
+            },
+          });
+        });
+      }
+      init();
+    </script>
+  </body>
+</html>

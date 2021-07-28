@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="http://localhost:8080/dibsy-1.0.0.js"></script>
+  </head>
+  <body>
+      <div>
+          <h1>Buy this product using hosted checkout</h1>
+          <button id="payBtn">Pay 89.99 QAR</button>
+      </div>
+    <script>
+      // const pk = "pk_test_4n9n5fCtezWXLkb2dLGk2QplVmystAMuBIDU";
+      const pk = "pk_live_BMBxixpDP1Mx3YkwtjHmIbDhBc6rzNLXAWTz";
+      async function init() {
+        const dibsy = await Dibsy(pk, { type: "hosted" });
+        
+        const payBtn = document.querySelector('#payBtn')
+        payBtn.addEventListener('click',(ev)=>{
+            ev.preventDefault();
+            dibsy.redirectToCheckout({
+                key:pk,
+                amount: 89.99,
+                description:"Buy this phone",
+                redirectUrl:"http://localhost:4545/thankyou/",
+                metadata:{
+                  orderid:"ma_52235"
+                }
+            })
+        })
+      }
+
+      window.addEventListener('DOMContentLoaded',function(){
+        init()
+      })
+    </script>
+  </body>
+</html>
