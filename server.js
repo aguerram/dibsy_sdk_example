@@ -22,6 +22,7 @@ app.post("/create-payment", async (req, res) => {
             url:'/payments',
             method: 'POST',
             data:{
+                redirectUrl: "http://localhost:4545/thankyou/",
                 customer:{
                     name:'Jone Doe',
                     email:'jhon@example.com',
