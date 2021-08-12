@@ -6,6 +6,7 @@ const PORT = 9898;
 app.use(express.static("public"));
 
 const DIBSY_SK = 'sk_live_bba02441e140a8abcdc4bdd8b89e4da70460'
+// const DIBSY_SK = 'sk_test_bd56bdbd9858a2ba8ce8fb8384b8d34a87e9'
 // const DIBSY_URL = 'https://api.dibsy.dev/v1'
 const DIBSY_URL = 'http://localhost:5000/v1'
 
@@ -22,13 +23,13 @@ app.post("/create-payment", async (req, res) => {
             url:'/payments',
             method: 'POST',
             data:{
-                redirectUrl: "http://localhost:4545/thankyou/",
+                // redirectUrl: "http://localhost:4545/thankyou/",
                 customer:{
                     name:'Jone Doe',
                     email:'jhon@example.com',
                     phone:'+2126352321'
                 },
-                amount:10.99,
+                amount:13.75,
                 description:'Purchase for order #65231',
                 metadata:{
                     order_id:'65231'

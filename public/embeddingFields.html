@@ -88,11 +88,27 @@
       </div>
     </form>
     <script>
-      const pk = "pk_live_BMBxixpDP1Mx3YkwtjHmIbDhBc6rzNLXAWTz";
+      const pk = "pk_test_4n9n5fCtezWXLkb2dLGk2QplVmystAMuBIDU";
 
       async function init() {
         //we inisiate our SDK
-        const dibsy = await Dibsy(pk, { type: "embed" });
+        const dibsy = await Dibsy(pk, {
+          type: "embed",
+          onReady: function (field, fields) {
+            console.log("On ready", field, fields);
+          },
+          canSubmit: (canSubmit) => {
+            //this function is called whenever can submit state changes.
+            //us this function to disabled the pay button for example, as if canSubmit is false,
+            //the SDK won't submit the payment for you, so always make sure to not activate your pay button unless
+            //canSubmit is true
+            if (!canSubmit) {
+              payBtn.setAttribute("disabled", "true");
+            } else {
+              payBtn.removeAttribute("disabled");
+            }
+          },
+        });
 
         //we create a card number component, with different options if we want to override the default ones.
         const cardNumber = dibsy.createComponent("cardNumber", {
@@ -127,18 +143,6 @@
         //manage pay button state, by listening to dibsy if we can submit the form
         const payBtn = document.querySelector(".pay-btn");
 
-        dibsy.canSubmit((canSubmit) => {
-          //this function is called whenever can submit state changes.
-          //us this function to disabled the pay button for example, as if canSubmit is false,
-          //the SDK won't submit the payment for you, so always make sure to not activate your pay button unless 
-          //canSubmit is true
-          if (!canSubmit) {
-            payBtn.setAttribute("disabled", "true");
-          } else {
-            payBtn.removeAttribute("disabled");
-          }
-        });
-
         const form = document.querySelector("form");
         form.addEventListener("submit", async (e) => {
           e.preventDefault();
@@ -150,7 +154,6 @@
 
           //some app UX (disabling button while submitting)
           payBtn.setAttribute("disabled", "true");
-
 
           dibsy.submit({
             paymentToken: paymentToken,
@@ -170,9 +173,9 @@
                 payBtn.removeAttribute("disabled");
               }
             },
-            onClose:()=>{
+            onClose: () => {
               //this function is called when the user closes 'continue to issuer modal, or closed the ACS page'
-              console.log('Continue to issuer dialoge or ACS page is closed.');
+              console.log("Continue to issuer dialoge or ACS page is closed.");
             },
             callback: (payment, error) => {
               //this function is called at the end of the payment (only when the payer reaches '3DS' state, check 'state' function)
